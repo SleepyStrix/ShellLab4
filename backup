@@ -2,4 +2,23 @@
 
 CONFIG_PATH="./backup.conf"
 
-echo "backup running"
+echo "reading config file"
+
+
+CONFIG_TEXT=$(cat $CONFIG_PATH)
+#echo $CONFIG_TEXT
+
+
+#CONFIG_TEXT=$(echo $CONFIG_TEXT | sed -e 's/(=.*\n)/FUUUUUCK/g') 
+#remove spaces and quote values for variables
+CONFIG_TEXT=$(sed -r -e 's/[ \t]=[ \t]/=/g' -e 's/(=)(.*)/="\2"/g' $CONFIG_PATH) 
+#CONFIG_TEXT=$(echo $CONFIG_TEXT | sed -e 's/=.*\n/FUUUUUCK/g') 
+
+echo $CONFIG_TEXT
+#CONFIG_TEXT=$(echo $CONFIG_TEXT | tr -d ' ')
+
+#echo $("$CONFIG_TEXT" | sed -e "s/ /,'g")
+
+eval $CONFIG_TEXT
+
+echo $COMPRESSION
