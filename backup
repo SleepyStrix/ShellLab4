@@ -2,23 +2,31 @@
 
 CONFIG_PATH="./backup.conf"
 
-echo "reading config file"
+echo "Reading config file"
 
-
+#preserve newlines
+IFS=
 CONFIG_TEXT=$(cat $CONFIG_PATH)
 #echo $CONFIG_TEXT
 
+#remove comments
+CONFIG_TEXT=$(echo $CONFIG_TEXT | sed -e 's/#.*//g') 
+#remove spaces from variables
+CONFIG_TEXT=$(echo $CONFIG_TEXT | sed -e 's/[ \t]=[ \t]/=/g') 
+#quote variable values
+CONFIG_TEXT=$(echo $CONFIG_TEXT | sed -r -e 's/(=)(.*)/="\2"/g') 
+#replace - with _
+CONFIG_TEXT=$(echo $CONFIG_TEXT | sed -r -e 's/-/_/g') 
+#extract backup entries from config
+BACKUP_ENTRIES_TEXT=$(echo $CONFIG_TEXT | sed -nr '/.*:.*/p')
+#remove backup entries from config
+CONFIG_TEXT=$(echo $CONFIG_TEXT | sed -r -e 's/.*:.*//g')
 
-#CONFIG_TEXT=$(echo $CONFIG_TEXT | sed -e 's/(=.*\n)/FUUUUUCK/g') 
-#remove spaces and quote values for variables
-CONFIG_TEXT=$(sed -r -e 's/[ \t]=[ \t]/=/g' -e 's/(=)(.*)/="\2"/g' $CONFIG_PATH) 
-#CONFIG_TEXT=$(echo $CONFIG_TEXT | sed -e 's/=.*\n/FUUUUUCK/g') 
+#debug
+echo $CONFIG_TEXT > temp.txt
+echo $BACKUP_ENTRIES_TEXT > btemp.txt
 
-echo $CONFIG_TEXT
-#CONFIG_TEXT=$(echo $CONFIG_TEXT | tr -d ' ')
-
-#echo $("$CONFIG_TEXT" | sed -e "s/ /,'g")
-
+#run config as a script to get variables
 eval $CONFIG_TEXT
 
 echo $COMPRESSION
