@@ -1,13 +1,37 @@
 #! /bin/bash
 
+#iterate over all backup entries and parse them
+parse_backup_entries() {
+echo
+echo "Parsing backup entries from config..."
+for item in "${BACKUP_ENTRIES_ARRAY[@]}"
+do	
+	echo "BACKUP ENTRY: "$item""
+	local BE_NAME=$(echo $item| cut -d: -f1)
+	local BE_DIRECTORY=$(echo $item| cut -d: -f2)
+	local BE_RECURSIVE=$(echo $item| cut -d: -f3)
+	local BE_NUM_DAILY=$(echo $item| cut -d: -f4)
+	local BE_NUM_WEEKLY=$(echo $item| cut -d: -f5)
+	
+	local BE_NUM_MONTHLY=$(echo $item| cut -d: -f6)
+	echo "NAME: "$BE_NAME""
+	echo "DIRECTORY: "$BE_DIRECTORY""
+	echo "RECURSIVE: "$BE_RECURSIVE""
+	echo "NUM_DAILY: "$BE_NUM_DAILY""
+	echo "NUM_WEEKLY: "$BE_NUM_WEEKLY""
+	echo "NUM_MONTHLY: "$BE_NUM_MONTHLY""
+	echo
+done
+}
+
+
 CONFIG_PATH="./backup.conf"
 
-echo "Reading config file"
+echo "Parsing config file..."
 
 #preserve newlines
 IFS=
 CONFIG_TEXT=$(cat $CONFIG_PATH)
-#echo $CONFIG_TEXT
 
 #remove comments
 CONFIG_TEXT=$(echo $CONFIG_TEXT | sed -e 's/#.*//g') 
@@ -18,15 +42,31 @@ CONFIG_TEXT=$(echo $CONFIG_TEXT | sed -r -e 's/(=)(.*)/="\2"/g')
 #replace - with _
 CONFIG_TEXT=$(echo $CONFIG_TEXT | sed -r -e 's/-/_/g') 
 #extract backup entries from config
-BACKUP_ENTRIES_TEXT=$(echo $CONFIG_TEXT | sed -nr '/.*:.*/p')
+BACKUP_ENTRIES_TEXT=($(echo $CONFIG_TEXT | sed -nr '/.*:.*/p'))
 #remove backup entries from config
 CONFIG_TEXT=$(echo $CONFIG_TEXT | sed -r -e 's/.*:.*//g')
 
 #debug
-echo $CONFIG_TEXT > temp.txt
-echo $BACKUP_ENTRIES_TEXT > btemp.txt
+#echo $CONFIG_TEXT > temp.txt
+#echo $BACKUP_ENTRIES_TEXT > btemp.txt
 
 #run config as a script to get variables
 eval $CONFIG_TEXT
 
-echo $COMPRESSION
+#print standard variables
+echo
+echo "printing variable values..."
+echo "COMPRESSION: "$COMPRESSION""
+echo "E-MAIL: "$E_MAIL""
+echo "BACKUP_TARGET: "$BACKUP_TARGET""
+echo "TARGET_TYPE: "$TARGET_TYPE""
+echo "TARGET_SERVER: "$TARGET_SERVER""
+echo "TARGET_FS: "$TARGET_FS""
+echo "USER: "$USER""
+echo "PASSWORD: "$PASSWORD""
+
+#read the backup entries into an array for parsing
+readarray -t BACKUP_ENTRIES_ARRAY <<<$BACKUP_ENTRIES_TEXT
+parse_backup_entries
+
+#echo $(echo $BACKUP_ENTRIES_TEXT | cut -d: -f1)
