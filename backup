@@ -9,8 +9,6 @@
 # BACKUP_ENTRIES_TEXT contains text for backup entries from config file
 # BACKUP_ENTRIES_ARRAY containts backup entries split into an array
 
-##print help text to the console
-
 #iterate over all backup entries and parse them
 parse_backup_entries() {
 echo
@@ -18,13 +16,16 @@ echo "Parsing backup entries from config..."
 for item in "${BACKUP_ENTRIES_ARRAY[@]}"
 do	
 	echo "BACKUP ENTRY: "$item""
+	
+	#parse entry fields into individual variables
 	local BE_NAME=$(echo $item| cut -d: -f1)
 	local BE_DIRECTORY=$(echo $item| cut -d: -f2)
 	local BE_RECURSIVE=$(echo $item| cut -d: -f3)
 	local BE_NUM_DAILY=$(echo $item| cut -d: -f4)
-	local BE_NUM_WEEKLY=$(echo $item| cut -d: -f5)
-	
+	local BE_NUM_WEEKLY=$(echo $item| cut -d: -f5)	
 	local BE_NUM_MONTHLY=$(echo $item| cut -d: -f6)
+	
+	#print entry fields
 	echo "NAME: "$BE_NAME""
 	echo "DIRECTORY: "$BE_DIRECTORY""
 	echo "RECURSIVE: "$BE_RECURSIVE""
@@ -36,12 +37,13 @@ done
 }
 
 
-CONFIG_PATH="./backup.conf"
+CONFIG_PATH="/etc/backup.conf"
 
 echo "Parsing config file..."
 
 #preserve newlines
 IFS=
+#read config text into variable
 CONFIG_TEXT=$(cat $CONFIG_PATH)
 
 #remove comments
