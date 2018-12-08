@@ -1,0 +1,2 @@
+home:/home:Y:2:3:1
+config:/etc:Y:2:3:2

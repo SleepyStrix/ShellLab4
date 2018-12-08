@@ -1,0 +1,118 @@
+#! /bin/bash
+
+# Daniel Hewlett
+# Utility to backup directories and manage backup files
+# Last Revision: 12/26/2018
+# Name and purpose of top level variables:
+# CONFIG_PATH specifies path to config file backup.conf
+# CONFIG_TEXT contains text from config file, converted to runnable script
+# BACKUP_ENTRIES_TEXT contains text for backup entries from config file
+# BACKUP_ENTRIES_ARRAY contains backup entries split into an array
+
+#iterate over all backup entries and parse them
+parse_backup_entries() {
+echo
+echo "Parsing backup entries from config..."
+for item in "${BACKUP_ENTRIES_ARRAY[@]}"
+do	
+	#echo "RESTORE BACKUP ENTRY: "$item""
+	
+	#parse entry fields into individual variables
+	local BE_NAME=$(echo $item| cut -d: -f1)
+	local BE_DIRECTORY=$(echo $item| cut -d: -f2)
+	local BE_RECURSIVE=$(echo $item| cut -d: -f3)
+	local BE_NUM_DAILY=$(echo $item| cut -d: -f4)
+	local BE_NUM_WEEKLY=$(echo $item| cut -d: -f5)	
+	local BE_NUM_MONTHLY=$(echo $item| cut -d: -f6)
+	
+	if [ "$INPUT_BACKUP_NAME" = "$BE_NAME" ]
+	then
+		echo "RESTORING BACKUP:"
+		#print entry fields
+		echo "NAME: "$BE_NAME""
+		echo "DIRECTORY: "$BE_DIRECTORY""
+		echo "RECURSIVE: "$BE_RECURSIVE""
+		echo "NUM_DAILY: "$BE_NUM_DAILY""
+		echo "NUM_WEEKLY: "$BE_NUM_WEEKLY""
+		echo "NUM_MONTHLY: "$BE_NUM_MONTHLY""
+		echo
+	fi
+
+	execute_restore $BE_NAME $BE_DIRECTORY $BE_RECURSIVE $BE_NUM_DAILY $BE_NUM_WEEKLY $BE_NUM_MONTHLY
+done
+}
+
+execute_restore() {
+	BACKUP_NAME=$1
+	DIRECTORY=$2
+	IS_RECURSIVE=$3
+	NUM_DAILY=$4
+	NUM_WEEKLY=$5
+	NUM_MONTHLY=$6
+
+	#make archive directories if necessary
+	#mkdir $TARGET_FS &> /dev/null
+	ADHOC_FOLDER=""$TARGET_FS"/adhoc"
+	#mkdir $ADHOC_FOLDER &> /dev/null
+
+	#extract archive
+	#HOSTNAME=$(hostname)
+	#DATETIME=$(date +%Y-%m-%d.%H:%M)
+	#ARCHIVE_TYPE="tar.gz"
+	#ARCHIVE_FILE=$ADHOC_FOLDER/$HOSTNAME.$BACKUP_NAME.$DATETIME.$ARCHIVE_TYPE
+	echo "extracting backup:" $INPUT_ARCHIVE_PATH
+	#tar -czvf $ARCHIVE_FILE $DIRECTORY
+	cd $DIRECTORY
+	cd ..
+	tar -xzvf $INPUT_ARCHIVE_PATH
+}
+
+INPUT_ARCHIVE_PATH=$1
+INPUT_BACKUP_NAME=$(echo $INPUT_ARCHIVE_PATH | cut -d. -f2)
+echo "INPUT BACKUP NAME: "$INPUT_BACKUP_NAME
+
+#CONFIG_PATH="/etc/backup.conf"
+CONFIG_PATH="./backup.conf"
+
+echo "Parsing config file..."
+
+#preserve newlines
+IFS=
+#read config text into variable
+CONFIG_TEXT=$(cat $CONFIG_PATH)
+
+#remove comments
+CONFIG_TEXT=$(echo $CONFIG_TEXT | sed -e 's/#.*//g') 
+#remove spaces from variables
+CONFIG_TEXT=$(echo $CONFIG_TEXT | sed -e 's/[ \t]=[ \t]/=/g') 
+#quote variable values
+CONFIG_TEXT=$(echo $CONFIG_TEXT | sed -r -e 's/(=)(.*)/="\2"/g') 
+#replace '-' with '_'
+CONFIG_TEXT=$(echo $CONFIG_TEXT | sed -r -e 's/-/_/g') 
+#extract backup entries from config
+BACKUP_ENTRIES_TEXT=($(echo $CONFIG_TEXT | sed -nr '/.*:.*/p'))
+#remove backup entries from config
+CONFIG_TEXT=$(echo $CONFIG_TEXT | sed -r -e 's/.*:.*//g')
+
+#debug
+#echo $CONFIG_TEXT > temp.txt
+#echo $BACKUP_ENTRIES_TEXT > btemp.txt
+
+#run config as a script to get variables
+eval $CONFIG_TEXT
+
+#print standard variables
+echo
+echo "printing variable values..."
+echo "COMPRESSION: "$COMPRESSION""
+echo "E-MAIL: "$E_MAIL""
+echo "BACKUP_TARGET: "$BACKUP_TARGET""
+echo "TARGET_TYPE: "$TARGET_TYPE""
+echo "TARGET_SERVER: "$TARGET_SERVER""
+echo "TARGET_FS: "$TARGET_FS""
+echo "USER: "$USER""
+echo "PASSWORD: "$PASSWORD""
+
+#read the backup entries into an array for parsing
+readarray -t BACKUP_ENTRIES_ARRAY <<<$BACKUP_ENTRIES_TEXT
+parse_backup_entries
