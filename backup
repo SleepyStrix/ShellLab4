@@ -8,40 +8,40 @@
 # CONFIG_TEXT contains text from config file, converted to runnable script
 # BACKUP_ENTRIES_TEXT contains text for backup entries from config file
 # BACKUP_ENTRIES_ARRAY contains backup entries split into an array
-# INPUT_BACKUP_NAME name of backup to run
+# INPUT_BACKUP_NAME command lin param, name of backup to run
 # BACKUP_TYPE command line param, daily, weekly, monthly backup
 
 #iterate over all backup entries and parse them
 parse_backup_entries() {
-echo
-echo "Parsing backup entries from config..."
-for item in "${BACKUP_ENTRIES_ARRAY[@]}"
-do	
-	#echo "BACKUP ENTRY: "$item""
-	
-	#parse entry fields into individual variables
-	local BE_NAME=$(echo $item| cut -d: -f1)
-	local BE_DIRECTORY=$(echo $item| cut -d: -f2)
-	local BE_RECURSIVE=$(echo $item| cut -d: -f3)
-	local BE_NUM_DAILY=$(echo $item| cut -d: -f4)
-	local BE_NUM_WEEKLY=$(echo $item| cut -d: -f5)	
-	local BE_NUM_MONTHLY=$(echo $item| cut -d: -f6)
-	
-	#match backup name
-	if [ "$INPUT_BACKUP_NAME" = "$BE_NAME" ]
-	then
-		#print entry fields
-		echo "NAME: "$BE_NAME""
-		echo "DIRECTORY: "$BE_DIRECTORY""
-		echo "RECURSIVE: "$BE_RECURSIVE""
-		echo "NUM_DAILY: "$BE_NUM_DAILY""
-		echo "NUM_WEEKLY: "$BE_NUM_WEEKLY""
-		echo "NUM_MONTHLY: "$BE_NUM_MONTHLY""
-		echo
+	echo
+	echo "Parsing backup entries from config..."
+	for item in "${BACKUP_ENTRIES_ARRAY[@]}"
+	do	
+		#echo "BACKUP ENTRY: "$item""
+		
+		#parse entry fields into individual variables
+		local BE_NAME=$(echo $item| cut -d: -f1)
+		local BE_DIRECTORY=$(echo $item| cut -d: -f2)
+		local BE_RECURSIVE=$(echo $item| cut -d: -f3)
+		local BE_NUM_DAILY=$(echo $item| cut -d: -f4)
+		local BE_NUM_WEEKLY=$(echo $item| cut -d: -f5)	
+		local BE_NUM_MONTHLY=$(echo $item| cut -d: -f6)
+		
+		#match backup name
+		if [ "$INPUT_BACKUP_NAME" = "$BE_NAME" ]
+		then
+			#print entry fields
+			echo "NAME: "$BE_NAME""
+			echo "DIRECTORY: "$BE_DIRECTORY""
+			echo "RECURSIVE: "$BE_RECURSIVE""
+			echo "NUM_DAILY: "$BE_NUM_DAILY""
+			echo "NUM_WEEKLY: "$BE_NUM_WEEKLY""
+			echo "NUM_MONTHLY: "$BE_NUM_MONTHLY""
+			echo
 
-		execute_backup $BE_NAME $BE_DIRECTORY $BE_RECURSIVE $BE_NUM_DAILY $BE_NUM_WEEKLY $BE_NUM_MONTHLY
-	fi
-done
+			execute_backup $BE_NAME $BE_DIRECTORY $BE_RECURSIVE $BE_NUM_DAILY $BE_NUM_WEEKLY $BE_NUM_MONTHLY
+		fi
+	done
 }
 
 execute_backup() {
@@ -79,6 +79,43 @@ execute_backup() {
 	echo "CREATED BACKUP AT: "$ARCHIVE_FILE
 	echo
 
+	#get the correct max number of files for this backup
+	case "$BACKUP_TYPE" in
+		daily)
+			MAX_FILES=$NUM_DAILY
+			;;
+		weekly)
+			MAX_FILES=$NUM_WEEKLY
+			;;
+		monthly)
+			MAX_FILES=$NUM_MONTHLY
+			;;
+		*)
+			return 0;
+	esac
+
+	#create cronjob if one does not already exist
+	echo "creating cron job if necessary"
+	echo "backup" $BACKUP_NAME $BACKUP_TYPE > /etc/cron.$BACKUP_TYPE/Backup-$BACKUP_NAME-$BACKUP_TYPE
+
+	#apply backup limits
+	limit_files_in_dir $ARCHIVE_FOLDER $BACKUP_NAME $MAX_FILES
+}
+
+#limit the amount of backup files kept for a recurring backup
+limit_files_in_dir() {
+	TARGET_DIR=$1
+	OLDEST_FILE=""
+	BACKUP_NAME=$2
+	MAX_FILES=$3
+	declare -i MAX_OFFSET
+	MAX_OFFSET=$MAX_FILES+1
+	echo "Limiting backups for $BACKUP_NAME to $MAX_FILES files in $TARGET_DIR"
+
+	cd $TARGET_DIR
+	ls -tp *.$2.* | grep -v '/$' | tail -n +$MAX_OFFSET | xargs -I {} rm -- {}
+
+	echo "Finished clearing old files"
 }
 
 INPUT_BACKUP_NAME=$1
@@ -94,8 +131,8 @@ case "$BACKUP_TYPE" in
 esac
 echo "Backup type: "BACKUP_TYPE
 
-#CONFIG_PATH="/etc/backup.conf"
-CONFIG_PATH="./backup.conf"
+CONFIG_PATH="/etc/backup.conf"
+#CONFIG_PATH="./backup.conf"
 
 echo "Parsing config file..."
 
@@ -135,3 +172,5 @@ echo "PASSWORD: "$PASSWORD""
 #read the backup entries into an array for parsing
 readarray -t BACKUP_ENTRIES_ARRAY <<<$BACKUP_ENTRIES_TEXT
 parse_backup_entries
+echo
+echo "done"

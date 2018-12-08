@@ -13,37 +13,35 @@
 
 #iterate over all backup entries and parse them
 parse_backup_entries() {
-echo
-echo "Parsing backup entries from config..."
-for item in "${BACKUP_ENTRIES_ARRAY[@]}"
-do	
-	#echo "RESTORE BACKUP ENTRY: "$item""
-	
-	#parse entry fields into individual variables
-	local BE_NAME=$(echo $item| cut -d: -f1)
-	local BE_DIRECTORY=$(echo $item| cut -d: -f2)
-	local BE_RECURSIVE=$(echo $item| cut -d: -f3)
-	local BE_NUM_DAILY=$(echo $item| cut -d: -f4)
-	local BE_NUM_WEEKLY=$(echo $item| cut -d: -f5)	
-	local BE_NUM_MONTHLY=$(echo $item| cut -d: -f6)
-	
-	if [ "$INPUT_BACKUP_NAME" = "$BE_NAME" ]
-	then
-		echo "RESTORING BACKUP:"
-		#print entry fields
-		echo "NAME: "$BE_NAME""
-		echo "DIRECTORY: "$BE_DIRECTORY""
-		echo "RECURSIVE: "$BE_RECURSIVE""
-		echo "NUM_DAILY: "$BE_NUM_DAILY""
-		echo "NUM_WEEKLY: "$BE_NUM_WEEKLY""
-		echo "NUM_MONTHLY: "$BE_NUM_MONTHLY""
-		echo
+	echo
+	echo "Parsing backup entries from config..."
+	for item in "${BACKUP_ENTRIES_ARRAY[@]}"
+	do	
+		#echo "RESTORE BACKUP ENTRY: "$item""
+		
+		#parse entry fields into individual variables
+		local BE_NAME=$(echo $item| cut -d: -f1)
+		local BE_DIRECTORY=$(echo $item| cut -d: -f2)
+		local BE_RECURSIVE=$(echo $item| cut -d: -f3)
+		local BE_NUM_DAILY=$(echo $item| cut -d: -f4)
+		local BE_NUM_WEEKLY=$(echo $item| cut -d: -f5)	
+		local BE_NUM_MONTHLY=$(echo $item| cut -d: -f6)
+		
+		if [ "$INPUT_BACKUP_NAME" = "$BE_NAME" ]
+		then
+			echo "RESTORING BACKUP:"
+			#print entry fields
+			echo "NAME: "$BE_NAME""
+			echo "DIRECTORY: "$BE_DIRECTORY""
+			echo "RECURSIVE: "$BE_RECURSIVE""
+			echo "NUM_DAILY: "$BE_NUM_DAILY""
+			echo "NUM_WEEKLY: "$BE_NUM_WEEKLY""
+			echo "NUM_MONTHLY: "$BE_NUM_MONTHLY""
+			echo
 
-		execute_restore $BE_NAME $BE_DIRECTORY $BE_RECURSIVE $BE_NUM_DAILY $BE_NUM_WEEKLY $BE_NUM_MONTHLY
-	fi
-
-	
-done
+			execute_restore $BE_NAME $BE_DIRECTORY $BE_RECURSIVE $BE_NUM_DAILY $BE_NUM_WEEKLY $BE_NUM_MONTHLY
+		fi		
+	done
 }
 
 execute_restore() {
@@ -69,8 +67,8 @@ INPUT_ARCHIVE_PATH=$1
 INPUT_BACKUP_NAME=$(echo $INPUT_ARCHIVE_PATH | cut -d. -f2)
 echo "INPUT BACKUP NAME: "$INPUT_BACKUP_NAME
 
-#CONFIG_PATH="/etc/backup.conf"
-CONFIG_PATH="./backup.conf"
+CONFIG_PATH="/etc/backup.conf"
+#CONFIG_PATH="./backup.conf"
 
 echo "Parsing config file..."
 
