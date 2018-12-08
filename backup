@@ -8,6 +8,8 @@
 # CONFIG_TEXT contains text from config file, converted to runnable script
 # BACKUP_ENTRIES_TEXT contains text for backup entries from config file
 # BACKUP_ENTRIES_ARRAY contains backup entries split into an array
+# INPUT_BACKUP_NAME name of backup to run
+# BACKUP_TYPE command line param, daily, weekly, monthly backup
 
 #iterate over all backup entries and parse them
 parse_backup_entries() {
@@ -15,7 +17,7 @@ echo
 echo "Parsing backup entries from config..."
 for item in "${BACKUP_ENTRIES_ARRAY[@]}"
 do	
-	echo "BACKUP ENTRY: "$item""
+	#echo "BACKUP ENTRY: "$item""
 	
 	#parse entry fields into individual variables
 	local BE_NAME=$(echo $item| cut -d: -f1)
@@ -25,16 +27,20 @@ do
 	local BE_NUM_WEEKLY=$(echo $item| cut -d: -f5)	
 	local BE_NUM_MONTHLY=$(echo $item| cut -d: -f6)
 	
-	#print entry fields
-	echo "NAME: "$BE_NAME""
-	echo "DIRECTORY: "$BE_DIRECTORY""
-	echo "RECURSIVE: "$BE_RECURSIVE""
-	echo "NUM_DAILY: "$BE_NUM_DAILY""
-	echo "NUM_WEEKLY: "$BE_NUM_WEEKLY""
-	echo "NUM_MONTHLY: "$BE_NUM_MONTHLY""
-	echo
+	#match backup name
+	if [ "$INPUT_BACKUP_NAME" = "$BE_NAME" ]
+	then
+		#print entry fields
+		echo "NAME: "$BE_NAME""
+		echo "DIRECTORY: "$BE_DIRECTORY""
+		echo "RECURSIVE: "$BE_RECURSIVE""
+		echo "NUM_DAILY: "$BE_NUM_DAILY""
+		echo "NUM_WEEKLY: "$BE_NUM_WEEKLY""
+		echo "NUM_MONTHLY: "$BE_NUM_MONTHLY""
+		echo
 
-	execute_backup $BE_NAME $BE_DIRECTORY $BE_RECURSIVE $BE_NUM_DAILY $BE_NUM_WEEKLY $BE_NUM_MONTHLY
+		execute_backup $BE_NAME $BE_DIRECTORY $BE_RECURSIVE $BE_NUM_DAILY $BE_NUM_WEEKLY $BE_NUM_MONTHLY
+	fi
 done
 }
 
@@ -48,16 +54,16 @@ execute_backup() {
 
 	#make archive directories if necessary
 	mkdir $TARGET_FS &> /dev/null
-	ADHOC_FOLDER=""$TARGET_FS"/adhoc"
-	mkdir $ADHOC_FOLDER &> /dev/null
+	ARCHIVE_FOLDER=$TARGET_FS/$BACKUP_TYPE
+	mkdir $ARCHIVE_FOLDER &> /dev/null
 
 	#make archive
 	HOSTNAME=$(hostname)
 	DATETIME=$(date +%Y-%m-%d.%H:%M)
 	ARCHIVE_TYPE="tar.gz"
-	ARCHIVE_FILE=$ADHOC_FOLDER/$HOSTNAME.$BACKUP_NAME.$DATETIME.$ARCHIVE_TYPE
+	ARCHIVE_FILE=$ARCHIVE_FOLDER/$HOSTNAME.$BACKUP_NAME.$DATETIME.$ARCHIVE_TYPE
 	echo "making backup:" $ARCHIVE_FILE
-	tar -czvf $ARCHIVE_FILE $DIRECTORY
+	tar -czvf $ARCHIVE_FILE $DIRECTORY &> /dev/null
 
 	#make log directories if necessary
 	mkdir "var/log" &> /dev/null
@@ -70,8 +76,23 @@ execute_backup() {
 	echo $DATETIME >> $LOG_FILE
 	echo $LOG_TEXT >> $LOG_FILE
 
+	echo "CREATED BACKUP AT: "$ARCHIVE_FILE
+	echo
+
 }
 
+INPUT_BACKUP_NAME=$1
+
+#get and valibate backup type
+BACKUP_TYPE=$2
+case "$BACKUP_TYPE" in
+	daily|weekly|monthly)
+		;;
+	*)
+		BACKUP_TYPE="adhoc"
+		;;
+esac
+echo "Backup type: "BACKUP_TYPE
 
 #CONFIG_PATH="/etc/backup.conf"
 CONFIG_PATH="./backup.conf"
