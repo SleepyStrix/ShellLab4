@@ -1,13 +1,15 @@
 #! /bin/bash
 
 # Daniel Hewlett
-# Utility to backup directories and manage backup files
-# Last Revision: 12/26/2018
+# Utility to restore backed up directories
+# Last Revision: 12/7/2018
 # Name and purpose of top level variables:
 # CONFIG_PATH specifies path to config file backup.conf
 # CONFIG_TEXT contains text from config file, converted to runnable script
 # BACKUP_ENTRIES_TEXT contains text for backup entries from config file
 # BACKUP_ENTRIES_ARRAY contains backup entries split into an array
+# INPUT_ARCHIVE_PATH argument containing backup file to restore
+# INPUT_BACKUP_NAME name of backup, extracted from filename
 
 #iterate over all backup entries and parse them
 parse_backup_entries() {
@@ -52,24 +54,18 @@ execute_restore() {
 	NUM_WEEKLY=$5
 	NUM_MONTHLY=$6
 
-	#make archive directories if necessary
-	#mkdir $TARGET_FS &> /dev/null
-	ADHOC_FOLDER=""$TARGET_FS"/adhoc"
-	#mkdir $ADHOC_FOLDER &> /dev/null
-
-	#extract archive
-	#HOSTNAME=$(hostname)
-	#DATETIME=$(date +%Y-%m-%d.%H:%M)
-	#ARCHIVE_TYPE="tar.gz"
-	#ARCHIVE_FILE=$ADHOC_FOLDER/$HOSTNAME.$BACKUP_NAME.$DATETIME.$ARCHIVE_TYPE
 	echo "extracting backup:" $INPUT_ARCHIVE_PATH
-	#tar -czvf $ARCHIVE_FILE $DIRECTORY
+
+	#go to extraction directory
 	cd $DIRECTORY
 	cd ..
+	#extract backup
 	tar -xzvf $INPUT_ARCHIVE_PATH
 }
 
+#Get command line input
 INPUT_ARCHIVE_PATH=$1
+# extract backup name from archive name
 INPUT_BACKUP_NAME=$(echo $INPUT_ARCHIVE_PATH | cut -d. -f2)
 echo "INPUT BACKUP NAME: "$INPUT_BACKUP_NAME
 
@@ -96,25 +92,17 @@ BACKUP_ENTRIES_TEXT=($(echo $CONFIG_TEXT | sed -nr '/.*:.*/p'))
 #remove backup entries from config
 CONFIG_TEXT=$(echo $CONFIG_TEXT | sed -r -e 's/.*:.*//g')
 
-#debug
-#echo $CONFIG_TEXT > temp.txt
-#echo $BACKUP_ENTRIES_TEXT > btemp.txt
-
 #run config as a script to get variables
 eval $CONFIG_TEXT
 
-#print standard variables
-echo
-echo "printing variable values..."
-echo "COMPRESSION: "$COMPRESSION""
-echo "E-MAIL: "$E_MAIL""
-echo "BACKUP_TARGET: "$BACKUP_TARGET""
-echo "TARGET_TYPE: "$TARGET_TYPE""
-echo "TARGET_SERVER: "$TARGET_SERVER""
-echo "TARGET_FS: "$TARGET_FS""
-echo "USER: "$USER""
-echo "PASSWORD: "$PASSWORD""
-
 #read the backup entries into an array for parsing
 readarray -t BACKUP_ENTRIES_ARRAY <<<$BACKUP_ENTRIES_TEXT
-parse_backup_entries
+
+read -p "Are you sure you want to restore this backup?(Y/n) " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]
+then
+	parse_backup_entries
+else
+	echo "Restore canceled."
+fi
