@@ -112,8 +112,9 @@ limit_files_in_dir() {
 	MAX_OFFSET=$MAX_FILES+1
 	echo "Limiting backups for $BACKUP_NAME to $MAX_FILES files in $TARGET_DIR"
 
+	# delete old files over the max files limit
 	cd $TARGET_DIR
-	ls -tp *.$2.* | grep -v '/$' | tail -n +$MAX_OFFSET | xargs -I {} rm -- {}
+	ls -tp *.$BACKUP_NAME.* | grep -v '/$' | tail -n +$MAX_OFFSET | xargs -I {} rm -- {}
 
 	echo "Finished clearing old files"
 }
