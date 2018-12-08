@@ -33,11 +33,48 @@ do
 	echo "NUM_WEEKLY: "$BE_NUM_WEEKLY""
 	echo "NUM_MONTHLY: "$BE_NUM_MONTHLY""
 	echo
+
+	execute_backup $BE_NAME $BE_DIRECTORY $BE_RECURSIVE $BE_NUM_DAILY $BE_NUM_WEEKLY $BE_NUM_MONTHLY
 done
 }
 
+execute_backup() {
+	BACKUP_NAME=$1
+	DIRECTORY=$2
+	IS_RECURSIVE=$3
+	NUM_DAILY=$4
+	NUM_WEEKLY=$5
+	NUM_MONTHLY=$6
 
-CONFIG_PATH="/etc/backup.conf"
+	#make archive directories if necessary
+	mkdir $TARGET_FS &> /dev/null
+	ADHOC_FOLDER=""$TARGET_FS"/adhoc"
+	mkdir $ADHOC_FOLDER &> /dev/null
+
+	#make archive
+	HOSTNAME=$(hostname)
+	DATETIME=$(date +%Y-%m-%d.%H:%M)
+	ARCHIVE_TYPE="tar.gz"
+	ARCHIVE_FILE=$ADHOC_FOLDER/$HOSTNAME.$BACKUP_NAME.$DATETIME.$ARCHIVE_TYPE
+	echo "making backup:" $ARCHIVE_FILE
+	tar -czvf $ARCHIVE_FILE $DIRECTORY
+
+	#make log directories if necessary
+	mkdir "var/log" &> /dev/null
+	LOG_DIR="/var/log/backup"
+	mkdir $LOG_DIR &> /dev/null
+
+	#create and populate log file
+	LOG_FILE=$LOG_DIR/$BACKUP_NAME.$DATETIME
+	LOG_TEXT=$(ls -R $DIRECTORY)
+	echo $DATETIME >> $LOG_FILE
+	echo $LOG_TEXT >> $LOG_FILE
+
+}
+
+
+#CONFIG_PATH="/etc/backup.conf"
+CONFIG_PATH="./backup.conf"
 
 echo "Parsing config file..."
 
